@@ -60,21 +60,44 @@ public class ParseAndSend {
                         .withIgnoreHeaderCase()
                         .withTrim());
         ) {
-            List<String> roomNames = csvParser.getHeaderNames();
+            List<String> columnNames = csvParser.getHeaderNames();
             for (CSVRecord csvRecord : csvParser) {
                 // Accessing values by Header names
                 String timestamp = csvRecord.get("Timestamp");
-                for (String roomName : roomNames) {
-                    if (roomName.equals("Timestamp")) {
+                for (String columnName : columnNames) {
+                    if (columnName.equals("Timestamp")) {
                         //do nothing
                     } else {
-                        String luft = csvRecord.get(roomName);
-                        if (luft != null && !luft.isEmpty()) {
+                        String columnValue = csvRecord.get(columnName);
+                        //Expexting roomName-n where n = 1,2,3,4...
+                        if (columnValue != null && !columnValue.isEmpty()) {
                             try {
+                            String[] sensorNameParts = columnValue.split("-");
+                            String roomName = sensorNameParts[0];
+                            String sensorNumberStr = sensorNameParts[1];
+                                findZone(sensorNumberStr);
+
                                 Date timestampDate = formatter.parse(timestamp);
                                 Long timestampLong = timestampDate.getTime();
-                                Double luftValue = parseValue(luft);
-                                app.sendToInflux("room", roomName, "luft", luftValue, timestampLong * 1000000);
+                                Double luftValue = parseValue(columnValue);
+
+                                /*
+                                Int Quotient = 1/2
+Int Remainer = 1%2
+Sone = quotient + remainer
+
+Rom=sk..
+Luft_inn=123
+Luft_Ut=212
+Spjell_inn=34,5
+Spjell_ut=21,0
+
+Rom, luft, sone=1, inn=235
+Rom, funksjon=luft, sone=2, ut=365
+Rom=sk4106, funksjon=spjell, sone=1, ut=21,5
+Rom=sk4106, sone=1, luft_inn=23,5, spjell_inn=23,5
+                                 */
+                                app.sendToInflux("room", columnName, "luft", luftValue, timestampLong * 1000000);
 //                                app.sendToInflux("room", roomName, "luft", luftValue,System.currentTimeMillis());
                             } catch (ParseException e) {
                                 e.printStackTrace();
@@ -85,6 +108,15 @@ public class ParseAndSend {
             }
 
         }
+    }
+
+    static int findZone(String sensorNumberStr) {
+        int sensorNumber = Integer.valueOf(sensorNumberStr);
+        int quotient = sensorNumber / 2;
+        int remainer = sensorNumber % 2;
+        int zone = quotient + remainer;
+        log.debug("zone: {}", zone);
+        return zone;
     }
 
     void openDb() {
