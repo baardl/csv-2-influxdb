@@ -29,3 +29,6 @@ hs_err_pid*
 #CSV
 *.csv
 
+# Config
+local_config.properties
+
